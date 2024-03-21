@@ -1,9 +1,11 @@
 import React from "react";
 import {
+  Form,
   Tile,
   ClickableTile,
   Loading,
   Grid,
+  Button,
   Column,
   DataTable,
   TableContainer,
@@ -74,6 +76,16 @@ const HomeDashBoard: React.FC<DashBoardProps> = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [selectedTile, setSelectedTile] = useState<Tile>(null);
+  const [nextPage, setNextPage] = useState(null);
+  const [previousPage, setPreviousPage] = useState(null);
+  const [pagination, setPagination] = useState(false);
+  const [url, setUrl] = useState("");
+
+  useEffect(() => {
+    setNextPage(null);
+    setPreviousPage(null);
+    setPagination(false);
+  }, []);
 
   useEffect(() => {
     getFromOpenElisServer("/rest/home-dashboard/metrics", loadCount);
@@ -86,6 +98,9 @@ const HomeDashBoard: React.FC<DashBoardProps> = () => {
 
   useEffect(() => {
     if (selectedTile != null) {
+      setNextPage(null);
+      setPreviousPage(null);
+      setPagination(false);
       setLoading(true);
       if (selectedTile.type == "AVERAGE_TURN_AROUND_TIME") {
         getFromOpenElisServer(
@@ -106,6 +121,32 @@ const HomeDashBoard: React.FC<DashBoardProps> = () => {
           loadData,
         );
       }
+      const loadNextResultsPage = () => {
+        setIsLoading(true);
+        getFromOpenElisServer(url + "&page=" + nextPage, getTestsList);
+      };
+  
+      const loadPreviousResultsPage = () => {
+        setIsLoading(true);
+        getFromOpenElisServer(url + "&page=" + previousPage, getTestsList);
+      };
+      if (res.paging) {
+        var { totalPages, currentPage } = res.paging;
+        if (totalPages > 1) {
+          setPagination(true);
+          if (parseInt(currentPage) < parseInt(totalPages)) {
+            setNextPage(parseInt(currentPage) + 1);
+          } else {
+            setNextPage(null);
+          }
+          if (parseInt(currentPage) > 1) {
+            setPreviousPage(parseInt(currentPage) - 1);
+          } else {
+            setPreviousPage(null);
+          }
+        }
+      }
+      setLoading(false);
     }
 
     return () => {
@@ -455,6 +496,31 @@ const HomeDashBoard: React.FC<DashBoardProps> = () => {
                         </TableContainer>
                       )}
                     </DataTable>
+                    {pagination && (
+                      <Grid>
+                        <Column lg={11} />
+                        <Column lg={2}>
+                          <Button
+                            type=""
+                            id="loadpreviousresults"
+                            onClick={loadPreviousResultsPage}
+                            disabled={previousPage != null ? false : true}
+                          >
+                            <FormattedMessage id="button.label.loadprevious" />
+                          </Button>
+                        </Column>
+                        <Column lg={2}>
+                          <Button
+                            type=""
+                            id="loadnextresults"
+                            onClick={loadNextResultsPage}
+                            disabled={nextPage != null ? false : true}
+                          >
+                            <FormattedMessage id="button.label.loadnext" />
+                          </Button>
+                        </Column>
+                      </Grid>
+                    )}
                     <Pagination
                       onChange={handlePageChange}
                       page={page}
